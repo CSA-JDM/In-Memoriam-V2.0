@@ -145,114 +145,57 @@ class Time:
 
 class Text:
     def __init__(self, font, pos, surface):
+        self.font = font
+        self.pos = pos
+        self.surface = surface
+        self.x = self.pos[0]
+        self.y = self.pos[1]
+        self.selector_state = False
         self.rect = None
         self.key = None
         self.mods = None
         self.given_string = ""
-        self.font = font
-        self.pos = pos
-        self.surface = surface
-        self.x, self.y = self.pos[0], self.pos[1]
-        self.selector_state = False
+        self.rendered_letter = ""
         self.letter_w = 0
         self.letter_h = 0
-        self.rendered_letter = ""
+        self.key_values = {
+            "`": "~",
+            "1": "!",
+            "2": "@",
+            "3": "#",
+            "4": "$",
+            "5": "%",
+            "6": "^",
+            "7": "&",
+            "8": "*",
+            "9": "(",
+            "0": ")",
+            "-": "_",
+            "=": "+",
+            "[": "{",
+            "]": "}",
+            ";": ":",
+            "'": '"',
+            "\\": "|",
+            ",": "<",
+            ".": ">",
+            "/": "?"
+        }
 
     def check_typed(self, key, mods):
         self.key = key
         self.mods = mods
-        if self.key in string.ascii_letters or self.key in string.digits:
+        if self.key in string.ascii_letters:
             if self.mods & pygame.KMOD_LSHIFT:
-                if self.key == "1":
-                    self.given_string += "!"
-                    return
-                elif self.key == "2":
-                    self.given_string += "@"
-                    return
-                elif self.key == "3":
-                    self.given_string += "#"
-                    return
-                elif self.key == "4":
-                    self.given_string += "$"
-                    return
-                elif self.key == "5":
-                    self.given_string += "%"
-                    return
-                elif self.key == "6":
-                    self.given_string += "^"
-                    return
-                elif self.key == "7":
-                    self.given_string += "&"
-                    return
-                elif self.key == "8":
-                    self.given_string += "*"
-                    return
-                elif self.key == "9":
-                    self.given_string += "("
-                    return
-                elif self.key == "0":
-                    self.given_string += ")"
-                    return
                 self.key = self.key.upper()
+            self.given_string += self.key
+        elif self.key in self.key_values:
+            if self.mods & pygame.KMOD_LSHIFT:
+                self.key = self.key_values[self.key]
             self.given_string += self.key
         elif self.key == "space":
             self.given_string += " "
-        elif self.key == ",":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "<"
-            else:
-                self.given_string += self.key
-        elif self.key == "'":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += '"'
-            else:
-                self.given_string += self.key
-        elif self.key == ".":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += ">"
-            else:
-                self.given_string += self.key
-        elif self.key == "/":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "?"
-            else:
-                self.given_string += self.key
-        elif self.key == ";":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += ":"
-            else:
-                self.given_string += self.key
-        elif self.key == "[":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "{"
-            else:
-                self.given_string += self.key
-        elif self.key == "]":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "}"
-            else:
-                self.given_string += self.key
-        elif self.key == "\\":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "|"
-            else:
-                self.given_string += "\\"
-        elif self.key == "`":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "~"
-            else:
-                self.given_string += self.key
-        elif self.key == "-":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "_"
-            else:
-                self.given_string += self.key
-        elif self.key == "=":
-            if self.mods & pygame.KMOD_LSHIFT:
-                self.given_string += "+"
-            else:
-                self.given_string += self.key
-        elif self.key == "backspace" or self.key == "backspace".upper():
+        elif self.key == "backspace":
             self.given_string = self.given_string[:-1]
 
     def rect_(self, typed_rect):
