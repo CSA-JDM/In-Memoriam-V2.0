@@ -242,6 +242,16 @@ class Text:
                 self.given_string += "~"
             else:
                 self.given_string += self.key
+        elif self.key == "-":
+            if self.mods & pygame.KMOD_LSHIFT:
+                self.given_string += "_"
+            else:
+                self.given_string += self.key
+        elif self.key == "=":
+            if self.mods & pygame.KMOD_LSHIFT:
+                self.given_string += "+"
+            else:
+                self.given_string += self.key
         elif self.key == "backspace" or self.key == "backspace".upper():
             self.given_string = self.given_string[:-1]
 
@@ -252,25 +262,27 @@ class Text:
         to_blit = {}
         self.x, self.y = self.pos[0], self.pos[1]
         for letter in range(len(self.given_string)):
+            word = self.given_string[letter]
+            extra_letter = letter - 1
+            try:
+                while self.given_string[extra_letter] != " ":
+                    word = self.given_string[extra_letter] + word
+                    extra_letter -= 1
+            except IndexError:
+                word = self.given_string[:letter + 1]
             self.rendered_letter = self.font.render(f"{self.given_string[letter]}", False, colors["green"])
+            try:
+                rendered_word = self.font.render(f"{word}", False, colors["green"])
+            except pygame.error:
+                rendered_word = self.font.render("TOO LARGE", False, colors["green"])
+
             self.letter_w, self.letter_h = self.rendered_letter.get_size()
+            word_w, word_h = rendered_word.get_size()
+
             if self.x + self.letter_w <= self.rect[2] + self.pos[0] - 20:
                 to_blit[self.rendered_letter] = [self.x, self.y], letter
                 self.x += self.letter_w
             elif self.x + self.letter_w > self.rect[2] + self.pos[0] - 20:
-                word = self.given_string[letter]
-                extra_letter = letter - 1
-                try:
-                    while self.given_string[extra_letter] != " ":
-                        word = self.given_string[extra_letter] + word
-                        extra_letter -= 1
-                except IndexError:
-                    word = self.given_string[:letter+1]
-                try:
-                    rendered_word = self.font.render(f"{word}", False, colors["green"])
-                except pygame.error:
-                    rendered_word = self.font.render("TOO LARGE", False, colors["green"])
-                word_w, word_h = rendered_word.get_size()
                 if word_w > self.rect[2] - 20:
                     self.y += self.letter_h
                     self.x = self.pos[0]
