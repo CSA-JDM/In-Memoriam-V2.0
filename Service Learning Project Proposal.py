@@ -99,7 +99,6 @@ class ServiceLearningProjectProposal:
                                          False, colors["green"])
 
             screen.fill(colors["black"])
-            typed.blit_selector()
             typed.rect_(typed_rect)
             screen.blit(intro_text, [10, 5])
             screen.blit(current_time, [monitor_size[0] * 0.7875, monitor_size[1] * 0.955555556])
@@ -145,8 +144,8 @@ class Time:
 
 class Text:
     def __init__(self, font, pos, surface):
-        self.font = font
         self.pos = pos
+        self.font = font
         self.surface = surface
         self.x = self.pos[0]
         self.y = self.pos[1]
@@ -203,7 +202,9 @@ class Text:
 
     def text_box(self):
         to_blit = {}
-        self.x, self.y = self.pos[0], self.pos[1]
+        self.x = self.pos[0]
+        self.y = self.pos[1]
+
         for letter in range(len(self.given_string)):
             word = self.given_string[letter]
             extra_letter = letter - 1
@@ -253,16 +254,15 @@ class Text:
                     self.rect[1] < to_blit[l][0][1] < self.rect[1] + self.rect[3]:
                 self.surface.blit(l, to_blit[l][0])
 
+        if self.selector_state is True:
+            rendered_selector = self.font.render("|", False, colors["green"])
+            self.surface.blit(rendered_selector, [self.x, self.y])
+
     def selector(self):
         if self.selector_state is False:
             self.selector_state = True
         elif self.selector_state is True:
             self.selector_state = False
-
-    def blit_selector(self):
-        if self.selector_state is True:
-            rendered_selector = self.font.render("|", False, colors["green"])
-            self.surface.blit(rendered_selector, [self.x, self.y])
 
 
 class Audio:
