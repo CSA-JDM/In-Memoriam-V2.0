@@ -48,13 +48,20 @@ class ServiceLearningProjectProposal:
         intro_text = tnr_30.render(title, False, colors["green"])
         times_clicked = 0
         s_times_clicked = "000000000000000"
+        text_objects = []
+
         typed_rect = pygame.Rect([100, 100], [1000, 100])
-        typed_pos = typed_rect[0] + 10, typed_rect[1] + 10
-        typed = Text(tnr_30, typed_pos, screen, typed_rect)
         special_input_rect = pygame.Rect([100, 199], [140, 55])
+
+        typed_pos = typed_rect[0] + 10, typed_rect[1] + 10
         special_input_pos = special_input_rect[0] + 10, special_input_rect[1] + 5
-        special_input = Text(tnr_30, special_input_pos, screen, special_input_rect)
-        text_objects = [typed, special_input]
+
+        typed = Text(tnr_30, typed_pos, screen, typed_rect, "green")
+        special_input = Text(tnr_30, special_input_pos, screen, special_input_rect, "green")
+
+        text_objects += [typed]
+        text_objects += [special_input]
+
         background_rect = [True, screen.get_rect()]
         selected_region = {
             f"{typed_rect}": [False, typed_rect, 1],
@@ -112,8 +119,9 @@ class ServiceLearningProjectProposal:
                         if selected_region[f"{object_.rect}"][0] is True:
                             object_.check_typed(pressed_key, mods)
                 elif event.type == pygame.KEYUP:
-                    pressed_key = pygame.key.name(event.key)
-                    mods = pygame.key.get_mods()
+                    # pressed_key = pygame.key.name(event.key)
+                    # mods = pygame.key.get_mods()
+                    pass
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     times_clicked += 1
                     s_times_clicked = str(times_clicked)
@@ -129,7 +137,6 @@ class ServiceLearningProjectProposal:
                             selected_region[object_][0] = True
                         elif not selected_region[object_][1].collidepoint(current_position[0], current_position[1]):
                             selected_region[object_][0] = False
-
                 elif event.type == pygame.MOUSEBUTTONUP:
                     pass  # Will most likely be used later.
 
@@ -139,11 +146,15 @@ class ServiceLearningProjectProposal:
                                          False, colors["green"])
 
             screen.fill(colors["black"])
+
             typed.rect_(typed_rect)
             special_input.rect_(special_input_rect)
+
             screen.blit(intro_text, [10, 5])
             screen.blit(current_time, [monitor_size[0] * 0.7875, monitor_size[1] * 0.955555556])
-            screen.blit(clicked_text, [monitor_size[0] * 0.7875, monitor_size[1] * 0.911111111])
+            if clicked_text is None:
+                screen.blit(clicked_text, [monitor_size[0] * 0.7875, monitor_size[1] * 0.911111111])
+
             for object_ in text_objects:
                 if selected_region[f"{object_.rect}"][0] is True:
                     object_.text_box(True)
@@ -188,14 +199,14 @@ class Time:
 
 
 class Text:
-    def __init__(self, font, pos, surface, rect):
+    def __init__(self, font, pos, surface, rect, color):
         self.pos = pos
         self.font = font
         self.surface = surface
         self.x = self.pos[0]
         self.y = self.pos[1]
         self.selector_state = False
-        self.rect = pygame.draw.rect(self.surface, colors["green"], rect, 1)
+        self.rect = pygame.draw.rect(self.surface, colors[color], rect, 1)
         self.key = None
         self.mods = None
         self.given_string = ""
@@ -259,6 +270,7 @@ class Text:
                     extra_letter -= 1
             except IndexError:
                 word = self.given_string[:letter + 1]
+
             self.rendered_letter = self.font.render(f"{self.given_string[letter]}", False, colors["green"])
             try:
                 rendered_word = self.font.render(f"{word}", False, colors["green"])
