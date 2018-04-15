@@ -6,6 +6,7 @@ Main python file for my Service Learning Project Proposal
 import pygame
 import ctypes
 import string
+# Predefined Colors
 colors = {
     "black": (0, 0, 0),
     "white": (255, 255, 255),
@@ -17,57 +18,61 @@ colors = {
 
 class ServiceLearningProjectProposal:
     def __init__(self):
+        # Initialization of Pygame and Necessary Classes
         pygame.init()
         pygame.display.init()
         pygame.mixer.init()
         pygame.font.init()
-
+        # Predefined Information for Pygame Window
         title = "Service Learning Project Proposal"
         user32 = ctypes.windll.user32
         monitor_size = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
         screen = pygame.display.set_mode(monitor_size, pygame.FULLSCREEN)
         pygame.display.set_caption(title)
         full_screen = True
-
+        # Channels
         channel_1 = pygame.mixer.Channel(0)
         channel_2 = pygame.mixer.Channel(1)
         channels = [channel_1, channel_2]
         channel_sound = {channel_1: None,
                          channel_2: None}
+        # Sounds
         joyner_lucas___im_sorry = pygame.mixer.Sound("music\Joyner_Lucas_-_I'm_Sorry.wav")
         the_fray_x_ddlc___how_to_save_sayoris_life = pygame.mixer.Sound(
             "music\The_Fray_X_DDLC_-_How_to_Save_Sayori's_Life.wav")
         audio = Audio(channels, channel_sound)
 
+        # Predefined Variables
         done = False
         pygame.key.set_repeat(500, 10)
         clock = pygame.time.Clock()
         pygame.time.set_timer(pygame.USEREVENT + 1, 1000)
-
+        # Fonts and Introductory Text
         tnr_30 = pygame.font.SysFont("Times New Roman", 30)
         intro_text = tnr_30.render(title, False, colors["green"])
         times_clicked = 0
         s_times_clicked = "000000000000000"
+        # Text Boxes
         text_objects = []
-
+        # Text Box #1
         typed_rect = pygame.Rect([100, 100], [1000, 100])
         special_input_rect = pygame.Rect([100, 199], [140, 55])
-
         typed_pos = typed_rect[0] + 10, typed_rect[1] + 10
         special_input_pos = special_input_rect[0] + 10, special_input_rect[1] + 5
-
+        # 8-Digit Text Box
         typed = Text(tnr_30, typed_pos, screen, typed_rect, "green")
         special_input = Text(tnr_30, special_input_pos, screen, special_input_rect, "green")
 
         text_objects += [typed]
         text_objects += [special_input]
-
+        # Background
         background_rect = [True, screen.get_rect()]
+        # Selection of Regions
         selected_region = {
             f"{typed_rect}": [False, typed_rect, 1],
             f"{special_input_rect}": [False, special_input_rect, 2]
         }
-
+        # Main Loop
         while not done:
             for event in pygame.event.get():
                 current_position = pygame.mouse.get_pos()
