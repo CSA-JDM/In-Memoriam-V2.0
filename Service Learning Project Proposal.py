@@ -32,8 +32,8 @@ class ServiceLearningProjectProposal:
         channel_1 = pygame.mixer.Channel(0)
         channel_2 = pygame.mixer.Channel(1)
         channels = [channel_1, channel_2]
-        channel_sound = {channel_1: "",
-                         channel_2: ""}
+        channel_sound = {channel_1: None,
+                         channel_2: None}
         joyner_lucas___im_sorry = pygame.mixer.Sound("music\Joyner_Lucas_-_I'm_Sorry.wav")
         the_fray_x_ddlc___how_to_save_sayoris_life = pygame.mixer.Sound(
             "music\The_Fray_X_DDLC_-_How_to_Save_Sayori's_Life.wav")
@@ -50,14 +50,25 @@ class ServiceLearningProjectProposal:
         s_times_clicked = "000000000000000"
         typed_rect = pygame.Rect([100, 100], [1000, 100])
         typed_pos = typed_rect[0] + 10, typed_rect[1] + 10
-        typed = Text(tnr_30, typed_pos, screen)
+        typed = Text(tnr_30, typed_pos, screen, typed_rect)
+        special_input_rect = pygame.Rect([100, 199], [140, 55])
+        special_input_pos = special_input_rect[0] + 10, special_input_rect[1] + 5
+        special_input = Text(tnr_30, special_input_pos, screen, special_input_rect)
+        text_objects = [typed, special_input]
+        background_rect = [True, screen.get_rect()]
+        selected_region = {
+            f"{typed_rect}": [False, typed_rect, 1],
+            f"{special_input_rect}": [False, special_input_rect, 2]
+        }
 
         while not done:
             for event in pygame.event.get():
+                current_position = pygame.mouse.get_pos()
                 if event.type == pygame.QUIT:
                     done = True
                 elif event.type == pygame.USEREVENT + 1:
                     typed.selector()
+                    special_input.selector()
                 elif event.type == pygame.KEYDOWN:
                     pressed_key = pygame.key.name(event.key)
                     mods = pygame.key.get_mods()
@@ -72,13 +83,34 @@ class ServiceLearningProjectProposal:
                             if full_screen is False:
                                 pygame.display.set_mode(monitor_size, pygame.FULLSCREEN)
                                 full_screen = True
-                    elif pressed_key == "1":
-                        audio.check_channel(mods, joyner_lucas___im_sorry)
-                    elif pressed_key == "2":
-                        audio.check_channel(mods, the_fray_x_ddlc___how_to_save_sayoris_life)
                     elif pressed_key == "tab":
-                        pass  # Hoping to make tab a 'selector' key of sorts
-                    typed.check_typed(pressed_key, mods)
+                        if background_rect[0] is True:
+                            background_rect[0] = False
+                            for object_ in selected_region:
+                                if selected_region[object_][2] == 1:
+                                    selected_region[object_][0] = True
+                        else:
+                            for object_ in selected_region:
+                                if selected_region[object_][0] is True:
+                                    selected_region[object_][0] = False
+                                    total_regions = len(selected_region.keys())
+                                    for object__ in selected_region:
+                                        if selected_region[object__][2] == selected_region[object_][2] + 1:
+                                            selected_region[object__][0] = True
+                                            break
+                                        else:
+                                            total_regions -= 1
+                                    if total_regions == 0:
+                                        background_rect[0] = True
+                                    break
+                    if background_rect[0] is True:
+                        if pressed_key == "1":
+                            audio.check_channel(mods, joyner_lucas___im_sorry)
+                        elif pressed_key == "2":
+                            audio.check_channel(mods, the_fray_x_ddlc___how_to_save_sayoris_life)
+                    for object_ in text_objects:
+                        if selected_region[f"{object_.rect}"][0] is True:
+                            object_.check_typed(pressed_key, mods)
                 elif event.type == pygame.KEYUP:
                     pressed_key = pygame.key.name(event.key)
                     mods = pygame.key.get_mods()
@@ -90,8 +122,16 @@ class ServiceLearningProjectProposal:
                         s_times_clicked = str(times_clicked)
                     while len(s_times_clicked) != 15:
                         s_times_clicked = "0" + s_times_clicked
+
+                    for object_ in selected_region:
+                        if selected_region[object_][1].collidepoint(current_position[0], current_position[1]):
+                            background_rect[0] = False
+                            selected_region[object_][0] = True
+                        elif not selected_region[object_][1].collidepoint(current_position[0], current_position[1]):
+                            selected_region[object_][0] = False
+
                 elif event.type == pygame.MOUSEBUTTONUP:
-                    pass  # Will most likely be used later
+                    pass  # Will most likely be used later.
 
             s_time = Time().s_time
             clicked_text = tnr_30.render("Clicks: %s" % s_times_clicked, False, colors["green"])
@@ -100,10 +140,15 @@ class ServiceLearningProjectProposal:
 
             screen.fill(colors["black"])
             typed.rect_(typed_rect)
+            special_input.rect_(special_input_rect)
             screen.blit(intro_text, [10, 5])
             screen.blit(current_time, [monitor_size[0] * 0.7875, monitor_size[1] * 0.955555556])
             screen.blit(clicked_text, [monitor_size[0] * 0.7875, monitor_size[1] * 0.911111111])
-            typed.text_box()
+            for object_ in text_objects:
+                if selected_region[f"{object_.rect}"][0] is True:
+                    object_.text_box(True)
+                elif selected_region[f"{object_.rect}"][0] is False:
+                    object_.text_box(False)
 
             pygame.display.flip()
             clock.tick(60)
@@ -143,14 +188,14 @@ class Time:
 
 
 class Text:
-    def __init__(self, font, pos, surface):
+    def __init__(self, font, pos, surface, rect):
         self.pos = pos
         self.font = font
         self.surface = surface
         self.x = self.pos[0]
         self.y = self.pos[1]
         self.selector_state = False
-        self.rect = None
+        self.rect = pygame.draw.rect(self.surface, colors["green"], rect, 1)
         self.key = None
         self.mods = None
         self.given_string = ""
@@ -200,7 +245,7 @@ class Text:
     def rect_(self, typed_rect):
         self.rect = pygame.draw.rect(self.surface, colors["green"], typed_rect, 1)
 
-    def text_box(self):
+    def text_box(self, selected):
         to_blit = {}
         self.x = self.pos[0]
         self.y = self.pos[1]
@@ -254,9 +299,10 @@ class Text:
                     self.rect[1] < to_blit[l][0][1] < self.rect[1] + self.rect[3]:
                 self.surface.blit(l, to_blit[l][0])
 
-        if self.selector_state is True:
-            rendered_selector = self.font.render("|", False, colors["green"])
-            self.surface.blit(rendered_selector, [self.x, self.y])
+        if selected is True:
+            if self.selector_state is True:
+                rendered_selector = self.font.render("|", False, colors["green"])
+                self.surface.blit(rendered_selector, [self.x, self.y])
 
     def selector(self):
         if self.selector_state is False:
