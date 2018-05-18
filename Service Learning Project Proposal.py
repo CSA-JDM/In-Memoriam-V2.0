@@ -16,7 +16,7 @@ colors = {
 }
 
 
-class ServiceLearningProjectProposal:
+class App:
     def __init__(self):
         # Initialization of Pygame and Necessary Classes
         pygame.init()
@@ -55,22 +55,15 @@ class ServiceLearningProjectProposal:
         # Text Boxes
         text_objects = []
         # Text Box #1
-        typed_rect = pygame.Rect([100, 100], [1000, 100])
-        special_input_rect = pygame.Rect([100, 199], [140, 55])
-        typed_pos = typed_rect[0] + 10, typed_rect[1] + 10
-        special_input_pos = special_input_rect[0] + 10, special_input_rect[1] + 5
-        # 8-Digit Text Box
-        typed = Text(tnr_30, typed_pos, screen, typed_rect, "green")
-        special_input = Text(tnr_30, special_input_pos, screen, special_input_rect, "green")
-
-        text_objects += [typed]
-        text_objects += [special_input]
+        username_input_rect = pygame.Rect([100, 100], [1000, 100])
+        username_input_pos = username_input_rect[0] + 10, username_input_rect[1] + 10
+        username_input = Text(tnr_30, screen, pos=username_input_pos, rect=username_input_rect, color="green")
+        text_objects += [username_input]
         # Background
         background_rect = [True, screen.get_rect()]
         # Selection of Regions
         selected_region = {
-            f"{typed_rect}": [False, typed_rect, 1],
-            f"{special_input_rect}": [False, special_input_rect, 2]
+            f"{username_input_rect}": [False, username_input_rect, 1]
         }
         # Main Loop
         while not done:
@@ -79,8 +72,7 @@ class ServiceLearningProjectProposal:
                 if event.type == pygame.QUIT:
                     done = True
                 elif event.type == pygame.USEREVENT + 1:
-                    typed.selector()
-                    special_input.selector()
+                    username_input.selector()
                 elif event.type == pygame.KEYDOWN:
                     pressed_key = pygame.key.name(event.key)
                     mods = pygame.key.get_mods()
@@ -96,14 +88,14 @@ class ServiceLearningProjectProposal:
                                 pygame.display.set_mode(monitor_size, pygame.FULLSCREEN)
                                 full_screen = True
                     elif pressed_key == "tab":
-                        if background_rect[0] is True:
+                        if background_rect[0]:
                             background_rect[0] = False
                             for object_ in selected_region:
                                 if selected_region[object_][2] == 1:
                                     selected_region[object_][0] = True
                         else:
                             for object_ in selected_region:
-                                if selected_region[object_][0] is True:
+                                if selected_region[object_][0]:
                                     selected_region[object_][0] = False
                                     total_regions = len(selected_region.keys())
                                     for object__ in selected_region:
@@ -115,13 +107,13 @@ class ServiceLearningProjectProposal:
                                     if total_regions == 0:
                                         background_rect[0] = True
                                     break
-                    if background_rect[0] is True:
+                    if background_rect[0]:
                         if pressed_key == "1":
                             audio.check_channel(mods, joyner_lucas___im_sorry)
                         elif pressed_key == "2":
                             audio.check_channel(mods, the_fray_x_ddlc___how_to_save_sayoris_life)
                     for object_ in text_objects:
-                        if selected_region[f"{object_.rect}"][0] is True:
+                        if selected_region[f"{object_.rect}"][0]:
                             object_.check_typed(pressed_key, mods)
                 elif event.type == pygame.KEYUP:
                     # pressed_key = pygame.key.name(event.key)
@@ -147,23 +139,21 @@ class ServiceLearningProjectProposal:
 
             s_time = Time().s_time
             clicked_text = tnr_30.render("Clicks: %s" % s_times_clicked, False, colors["green"])
-            current_time = tnr_30.render("Time: " + ":".join(reversed(s_time)),
+            session_time = tnr_30.render("Session Time: " + ":".join(reversed(s_time)),
                                          False, colors["green"])
 
             screen.fill(colors["black"])
 
-            typed.rect_(typed_rect)
-            special_input.rect_(special_input_rect)
+            username_input.rect_(username_input_rect)
 
             screen.blit(intro_text, [10, 5])
-            screen.blit(current_time, [monitor_size[0] * 0.7875, monitor_size[1] * 0.955555556])
-            if clicked_text is None:
-                screen.blit(clicked_text, [monitor_size[0] * 0.7875, monitor_size[1] * 0.911111111])
+            screen.blit(clicked_text, [1234, 770])
+            screen.blit(session_time, [1150, 810])
 
             for object_ in text_objects:
-                if selected_region[f"{object_.rect}"][0] is True:
+                if selected_region[f"{object_.rect}"][0]:
                     object_.text_box(True)
-                elif selected_region[f"{object_.rect}"][0] is False:
+                elif not selected_region[f"{object_.rect}"][0]:
                     object_.text_box(False)
 
             pygame.display.flip()
@@ -204,7 +194,8 @@ class Time:
 
 
 class Text:
-    def __init__(self, font, pos, surface, rect, color):
+    def __init__(self, font, surface, pos=(0, 0),
+                 rect=pygame.Rect([0, 0], [0, 0]), color="white"):
         self.pos = pos
         self.font = font
         self.surface = surface
@@ -353,4 +344,4 @@ class Audio:
 
 
 if __name__ == "__main__":
-    ServiceLearningProjectProposal()
+    App()
