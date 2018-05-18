@@ -6,6 +6,7 @@ Main python file for my Service Learning Project Proposal
 import pygame
 import ctypes
 import string
+import time
 # Predefined Colors
 colors = {
     "black": (0, 0, 0),
@@ -24,7 +25,7 @@ class App:
         pygame.mixer.init()
         pygame.font.init()
         # Predefined Information for Pygame Window
-        title = "Service Learning Project Proposal"
+        title = "Service Learning Project"
         user32 = ctypes.windll.user32
         monitor_size = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
         screen = pygame.display.set_mode(monitor_size, pygame.FULLSCREEN)
@@ -55,15 +56,15 @@ class App:
         # Text Boxes
         text_objects = []
         # Text Box #1
-        username_input_rect = pygame.Rect([100, 100], [1000, 100])
-        username_input_pos = username_input_rect[0] + 10, username_input_rect[1] + 10
-        username_input = Text(tnr_30, screen, pos=username_input_pos, rect=username_input_rect, color="green")
-        text_objects += [username_input]
+        search_input_rect = pygame.Rect([10, 830], [1000, 60])
+        search_input_pos = search_input_rect[0] + 10, search_input_rect[1] + 10
+        search_input = Text(tnr_30, screen, pos=search_input_pos, rect=search_input_rect, color="green")
+        text_objects += [search_input]
         # Background
         background_rect = [True, screen.get_rect()]
         # Selection of Regions
         selected_region = {
-            f"{username_input_rect}": [False, username_input_rect, 1]
+            f"{search_input_rect}": [False, search_input_rect, 1]
         }
         # Main Loop
         while not done:
@@ -72,7 +73,7 @@ class App:
                 if event.type == pygame.QUIT:
                     done = True
                 elif event.type == pygame.USEREVENT + 1:
-                    username_input.selector()
+                    search_input.selector()
                 elif event.type == pygame.KEYDOWN:
                     pressed_key = pygame.key.name(event.key)
                     mods = pygame.key.get_mods()
@@ -141,14 +142,25 @@ class App:
             clicked_text = tnr_30.render("Clicks: %s" % s_times_clicked, False, colors["green"])
             session_time = tnr_30.render("Session Time: " + ":".join(reversed(s_time)),
                                          False, colors["green"])
+            local_time = list(time.localtime())
+            date_time = tnr_30.render(f"{local_time[0]}/{local_time[1]}/{local_time[2]}", False, colors["green"])
+            if len(str(local_time[3])) < 2:
+                local_time[3] = "0" + str(local_time[3])
+            if len(str(local_time[4])) < 2:
+                local_time[4] = "0" + str(local_time[4])
+            if len(str(local_time[5])) < 2:
+                local_time[5] = "0" + str(local_time[5])
+            time_time = tnr_30.render(f"{local_time[3]}:{local_time[4]}:{local_time[5]}", False, colors["green"])
 
             screen.fill(colors["black"])
 
-            username_input.rect_(username_input_rect)
+            search_input.rect_(search_input_rect)
 
             screen.blit(intro_text, [10, 5])
-            screen.blit(clicked_text, [1234, 770])
-            screen.blit(session_time, [1150, 810])
+            screen.blit(clicked_text, [1234, 740])
+            screen.blit(session_time, [1150, 780])
+            screen.blit(date_time, [1470, 820])
+            screen.blit(time_time, [1480, 860])
 
             for object_ in text_objects:
                 if selected_region[f"{object_.rect}"][0]:
