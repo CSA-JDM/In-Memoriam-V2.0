@@ -50,15 +50,16 @@ class App:
         pygame.time.set_timer(pygame.USEREVENT + 1, 1000)
         # Fonts and Introductory Text
         tnr_30 = pygame.font.SysFont("Times New Roman", 30)
+        tnr_25 = pygame.font.SysFont("Times New Roman", 20)
         intro_text = tnr_30.render(title, False, colors["green"])
         times_clicked = 0
         s_times_clicked = "000000000000000"
         # Text Boxes
         text_objects = []
         # Text Box #1
-        search_input_rect = pygame.Rect([10, 830], [1000, 60])
+        search_input_rect = pygame.Rect([10, 800], [1000, 90])
         search_input_pos = search_input_rect[0] + 10, search_input_rect[1] + 10
-        search_input = Text(tnr_30, screen, pos=search_input_pos, rect=search_input_rect, color="green")
+        search_input = TextInput(tnr_30, screen, pos=search_input_pos, rect=search_input_rect, color="green")
         text_objects += [search_input]
         # Background
         background_rect = [True, screen.get_rect()]
@@ -138,29 +139,25 @@ class App:
                 elif event.type == pygame.MOUSEBUTTONUP:
                     pass  # Will most likely be used later.
 
-            s_time = Time().s_time
-            clicked_text = tnr_30.render("Clicks: %s" % s_times_clicked, False, colors["green"])
-            session_time = tnr_30.render("Session Time: " + ":".join(reversed(s_time)),
+            s_time, d_time = Time().s_time
+            clicked_text = tnr_25.render("Clicks: %s" % s_times_clicked, False, colors["green"])
+            session_time = tnr_25.render("Session Time: " + ":".join(reversed(s_time)),
                                          False, colors["green"])
-            local_time = list(time.localtime())
-            date_time = tnr_30.render(f"{local_time[0]}/{local_time[1]}/{local_time[2]}", False, colors["green"])
-            if len(str(local_time[3])) < 2:
-                local_time[3] = "0" + str(local_time[3])
-            if len(str(local_time[4])) < 2:
-                local_time[4] = "0" + str(local_time[4])
-            if len(str(local_time[5])) < 2:
-                local_time[5] = "0" + str(local_time[5])
-            time_time = tnr_30.render(f"{local_time[3]}:{local_time[4]}:{local_time[5]}", False, colors["green"])
+
+            time_rect = pygame.Rect([1450, 800], [140, 90])
+            date_time = tnr_30.render(f"{d_time[0]}/{d_time[1]}/{d_time[2]}", False, colors["green"])
+            time_time = tnr_30.render(f"{d_time[3]}:{d_time[4]}:{d_time[5]}", False, colors["green"])
 
             screen.fill(colors["black"])
 
             search_input.rect_(search_input_rect)
+            pygame.draw.rect(screen, colors["green"], time_rect, 1)
 
             screen.blit(intro_text, [10, 5])
-            screen.blit(clicked_text, [1234, 740])
-            screen.blit(session_time, [1150, 780])
-            screen.blit(date_time, [1470, 820])
-            screen.blit(time_time, [1480, 860])
+            screen.blit(clicked_text, [1234, 810])
+            screen.blit(session_time, [1150, 850])
+            screen.blit(date_time, [1460, 810])
+            screen.blit(time_time, [1470, 850])
 
             for object_ in text_objects:
                 if selected_region[f"{object_.rect}"][0]:
@@ -201,23 +198,38 @@ class Time:
         while len(self.s_hours) != 2:
             self.s_hours = "0" + self.s_hours
 
-        self.s_time = [self.s_milliseconds, self.s_seconds, self.s_minutes, self.s_hours,
-                       self.s_days, self.s_weeks, self.s_months, self.s_years]
+        local_time = list(time.localtime())
+        if len(str(local_time[3])) < 2:
+            local_time[3] = "0" + str(local_time[3])
+        if len(str(local_time[4])) < 2:
+            local_time[4] = "0" + str(local_time[4])
+        if len(str(local_time[5])) < 2:
+            local_time[5] = "0" + str(local_time[5])
+
+        self.s_time = [[self.s_milliseconds, self.s_seconds, self.s_minutes, self.s_hours,
+                       self.s_days, self.s_weeks, self.s_months, self.s_years], local_time]
 
 
-class Text:
-    def __init__(self, font, surface, pos=(0, 0),
-                 rect=pygame.Rect([0, 0], [0, 0]), color="white"):
+class ScreenObject:
+    def __init__(self, pos, font, surface):
         self.pos = pos
         self.font = font
         self.surface = surface
         self.x = self.pos[0]
         self.y = self.pos[1]
+
+
+class TextInput(ScreenObject):
+    def __init__(self, font, surface, pos=(0, 0),
+                 rect=pygame.Rect([0, 0], [0, 0]), color="white"):
+        super().__init__(pos, font, surface)
         self.selector_state = False
         self.rect = pygame.draw.rect(self.surface, colors[color], rect, 1)
         self.key = None
+        self.key_memory = {}
         self.mods = None
         self.given_string = ""
+        self.string_pos = 0
         self.rendered_letter = ""
         self.letter_w = 0
         self.letter_h = 0
@@ -265,10 +277,105 @@ class Text:
         self.rect = pygame.draw.rect(self.surface, colors["green"], typed_rect, 1)
 
     def text_box(self, selected):
-        to_blit = {}
-        self.x = self.pos[0]
-        self.y = self.pos[1]
+        # Remaking text input logic; used to lag after a certain amount of inputs.
+        old_y = self.y
+        try:
+            self.rendered_letter = self.font.render(f"{self.given_string[self.string_pos]}", False, colors["green"])
+            self.letter_w, self.letter_h = self.rendered_letter.get_size()
 
+            word = self.given_string[self.string_pos]
+            extra_letter = self.string_pos - 1
+            try:
+                while self.given_string[extra_letter] != " " and extra_letter >= 0:
+                    word = self.given_string[extra_letter] + word
+                    extra_letter -= 1
+            except IndexError:
+                word = self.given_string[:self.string_pos + 1]
+            try:
+                rendered_word = self.font.render(f"{word}", False, colors["green"])
+            except pygame.error:
+                rendered_word = self.font.render("TOO LARGE", False, colors["green"])
+            word_w, word_h = rendered_word.get_size()
+
+            if self.x + self.letter_w <= self.rect[2] + self.pos[0] - 20:
+                if self.given_string[self.string_pos] in self.key_memory:
+                    self.key_memory[self.given_string[self.string_pos]] += [[[self.x, self.y], self.rendered_letter,
+                                                                             self.string_pos]]
+                else:
+                    self.key_memory[self.given_string[self.string_pos]] = [[[self.x, self.y], self.rendered_letter,
+                                                                            self.string_pos]]
+                self.x += self.letter_w
+                self.string_pos += 1
+            elif self.x + self.letter_w > self.rect[2] + self.pos[0] - 20:
+                if word_w > self.rect[2] - 20:
+                    self.y += self.letter_h
+                    self.x = self.pos[0]
+                    if self.given_string[self.string_pos] in self.key_memory:
+                        self.key_memory[self.given_string[self.string_pos]] += [[[self.x, self.y], self.rendered_letter,
+                                                                                 self.string_pos]]
+                    else:
+                        self.key_memory[self.given_string[self.string_pos]] = [[[self.x, self.y], self.rendered_letter,
+                                                                                self.string_pos]]
+                    self.x += self.letter_w
+                    self.string_pos += 1
+                else:
+                    to_delete = []
+                    for k in range(extra_letter, self.string_pos):
+                        for key in self.key_memory:
+                            for letter in range(len(self.key_memory[key])):
+                                if self.key_memory[key][letter][2] == k:
+                                    to_delete += [[key, letter]]
+                    for l in to_delete:
+                        del self.key_memory[l[0]][l[1]]
+                    self.y += word_h
+                    self.x = self.pos[0]
+                    for letter in word:
+                        self.rendered_letter = self.font.render(f"{letter}", False, colors["green"])
+                        self.letter_w, self.letter_h = self.rendered_letter.get_size()
+                        if letter in self.key_memory:
+                            self.key_memory[letter] += [[[self.x, self.y], self.rendered_letter, self.string_pos]]
+                        else:
+                            self.key_memory[letter] = [[[self.x, self.y], self.rendered_letter, self.string_pos]]
+                        self.x += self.letter_w
+                        self.string_pos += 1
+        except IndexError:
+            if self.string_pos > len(self.given_string):
+                for key in self.key_memory:
+                    for letter in range(len(self.key_memory[key])):
+                        if self.key_memory[key][letter][2] == self.string_pos - 1:
+                            self.string_pos -= 1
+                            self.x, self.y = self.key_memory[key][letter][0]
+                            del self.key_memory[key][letter]
+                            break
+
+        if self.y > self.rect[1] + self.rect[3] - 20:
+            self.y -= self.letter_h
+            for key in self.key_memory:
+                for letter in range(len(self.key_memory[key])):
+                    self.key_memory[key][letter] = [[self.key_memory[key][letter][0][0],
+                                                    self.key_memory[key][letter][0][1] - self.letter_h],
+                                                    self.key_memory[key][letter][1],
+                                                    self.key_memory[key][letter][2]]
+        elif self.y < old_y:
+            for key_ in self.key_memory:
+                for letter_ in range(len(self.key_memory[key_])):
+                    if self.key_memory[key_][letter_][0][1] < self.rect[1]:
+                        self.y += self.letter_h
+                        for key in self.key_memory:
+                            for letter in range(len(self.key_memory[key])):
+                                self.key_memory[key][letter] = [[self.key_memory[key][letter][0][0],
+                                                                self.key_memory[key][letter][0][1] + self.letter_h],
+                                                                self.key_memory[key][letter][1],
+                                                                self.key_memory[key][letter][2]]
+                        break
+
+        for key in self.key_memory:
+            for letter in range(len(self.key_memory[key])):
+                if self.rect[0] < self.key_memory[key][letter][0][0] < self.rect[0] + self.rect[2] and \
+                        self.rect[1] < self.key_memory[key][letter][0][1] < self.rect[1] + self.rect[3]:
+                    self.surface.blit(self.key_memory[key][letter][1], self.key_memory[key][letter][0])
+
+        """
         for letter in range(len(self.given_string)):
             word = self.given_string[letter]
             extra_letter = letter - 1
@@ -318,16 +425,17 @@ class Text:
             if self.rect[0] < to_blit[l][0][0] < self.rect[0] + self.rect[2] and \
                     self.rect[1] < to_blit[l][0][1] < self.rect[1] + self.rect[3]:
                 self.surface.blit(l, to_blit[l][0])
+        """
 
-        if selected is True:
-            if self.selector_state is True:
+        if selected:
+            if self.selector_state:
                 rendered_selector = self.font.render("|", False, colors["green"])
                 self.surface.blit(rendered_selector, [self.x, self.y])
 
     def selector(self):
-        if self.selector_state is False:
+        if not self.selector_state:
             self.selector_state = True
-        elif self.selector_state is True:
+        elif self.selector_state:
             self.selector_state = False
 
 
