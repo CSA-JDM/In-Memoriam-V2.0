@@ -41,6 +41,7 @@ class App:
         joyner_lucas___im_sorry = pygame.mixer.Sound("music\Joyner_Lucas_-_I'm_Sorry.wav")
         the_fray_x_ddlc___how_to_save_sayoris_life = pygame.mixer.Sound(
             "music\The_Fray_X_DDLC_-_How_to_Save_Sayori's_Life.wav")
+        # Audio
         audio = Audio(channels, channel_sound)
 
         # Predefined Variables
@@ -54,19 +55,23 @@ class App:
         intro_text = tnr_30.render(title, False, colors["green"])
         times_clicked = 0
         s_times_clicked = "000000000000000"
-        # Text Boxes
-        text_objects = []
-        # Text Box #1
+        # Text Input #1
         search_input_rect = pygame.Rect([10, 800], [1000, 90])
         search_input_pos = search_input_rect[0] + 10, search_input_rect[1] + 10
         search_input = TextInput(tnr_30, screen, pos=search_input_pos, rect=search_input_rect, color="green")
-        text_objects += [search_input]
         # Background
         background_rect = [True, screen.get_rect()]
         # Selection of Regions
         selected_region = {
             f"{search_input_rect}": [False, search_input_rect, 1]
         }
+        # Objects
+        blit_objects = {
+            "intro_text": [intro_text, [10, 5]]
+        }
+        text_objects = [
+            search_input
+        ]
         # Main Loop
         while not done:
             for event in pygame.event.get():
@@ -74,7 +79,8 @@ class App:
                 if event.type == pygame.QUIT:
                     done = True
                 elif event.type == pygame.USEREVENT + 1:
-                    search_input.selector()
+                    for object_ in text_objects:
+                        object_.selector()
                 elif event.type == pygame.KEYDOWN:
                     pressed_key = pygame.key.name(event.key)
                     mods = pygame.key.get_mods()
@@ -153,11 +159,13 @@ class App:
             search_input.rect_(search_input_rect)
             pygame.draw.rect(screen, colors["green"], time_rect, 1)
 
-            screen.blit(intro_text, [10, 5])
-            screen.blit(clicked_text, [1234, 810])
-            screen.blit(session_time, [1150, 850])
-            screen.blit(date_time, [1460, 810])
-            screen.blit(time_time, [1470, 850])
+            blit_objects["clicked_text"] = [clicked_text, [1200, 810]]
+            blit_objects["session_time"] = [session_time, [1150, 850]]
+            blit_objects["date_time"] = [date_time, [1460, 810]]
+            blit_objects["time_time"] = [time_time, [1470, 850]]
+
+            for object_ in blit_objects:
+                screen.blit(blit_objects[object_][0], blit_objects[object_][1])
 
             for object_ in text_objects:
                 if selected_region[f"{object_.rect}"][0]:
@@ -289,6 +297,7 @@ class TextInput(ScreenObject):
                 while self.given_string[extra_letter] != " " and extra_letter >= 0:
                     word = self.given_string[extra_letter] + word
                     extra_letter -= 1
+                extra_letter += 1
             except IndexError:
                 word = self.given_string[:self.string_pos + 1]
             try:
@@ -307,7 +316,7 @@ class TextInput(ScreenObject):
                 self.x += self.letter_w
                 self.string_pos += 1
             elif self.x + self.letter_w > self.rect[2] + self.pos[0] - 20:
-                if word_w > self.rect[2] - 20:
+                if word_w > 920:
                     self.y += self.letter_h
                     self.x = self.pos[0]
                     if self.given_string[self.string_pos] in self.key_memory:
@@ -318,17 +327,23 @@ class TextInput(ScreenObject):
                                                                                 self.string_pos]]
                     self.x += self.letter_w
                     self.string_pos += 1
-                else:
+                elif self.x + word_w > self.rect[2] + self.pos[0] - 20:
+                    print(self.x + word_w, self.rect[2] + self.pos[0] - 20)
+                    print(extra_letter, self.string_pos+1)
                     to_delete = []
-                    for k in range(extra_letter, self.string_pos):
+                    for k in range(extra_letter, self.string_pos+1):
                         for key in self.key_memory:
                             for letter in range(len(self.key_memory[key])):
                                 if self.key_memory[key][letter][2] == k:
                                     to_delete += [[key, letter]]
+                    print(to_delete)
                     for l in to_delete:
+                        print(l)
                         del self.key_memory[l[0]][l[1]]
+                        self.string_pos -= 1
                     self.y += word_h
                     self.x = self.pos[0]
+                    print(word)
                     for letter in word:
                         self.rendered_letter = self.font.render(f"{letter}", False, colors["green"])
                         self.letter_w, self.letter_h = self.rendered_letter.get_size()
@@ -339,14 +354,16 @@ class TextInput(ScreenObject):
                         self.x += self.letter_w
                         self.string_pos += 1
         except IndexError:
-            if self.string_pos > len(self.given_string):
+            while self.string_pos > len(self.given_string):
+                to_delete = []
                 for key in self.key_memory:
                     for letter in range(len(self.key_memory[key])):
                         if self.key_memory[key][letter][2] == self.string_pos - 1:
-                            self.string_pos -= 1
+                            to_delete += [[key, letter]]
                             self.x, self.y = self.key_memory[key][letter][0]
-                            del self.key_memory[key][letter]
-                            break
+                for l in to_delete:
+                    self.string_pos -= 1
+                    del self.key_memory[l[0]][l[1]]
 
         if self.y > self.rect[1] + self.rect[3] - 20:
             self.y -= self.letter_h
