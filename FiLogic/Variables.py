@@ -4,7 +4,10 @@
 Variable file for [PROJECT NAME].
 """
 import ctypes
+import pygame
 
+
+pygame.font.init()
 
 colors = {
     "black": (0, 0, 0),
@@ -15,3 +18,5 @@ colors = {
 }
 user32 = ctypes.windll.user32
 monitor_size = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+tnr_30 = pygame.font.SysFont("Times New Roman", 30)
+tnr_20 = pygame.font.SysFont("Times New Roman", 20)

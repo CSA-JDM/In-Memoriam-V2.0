@@ -5,7 +5,8 @@ Main python file for [PROJECT NAME].
 """
 from FiLogic.Objects import *
 import FiLogic.Variables as FiVar
-import FiLogic.Multi_Dimensional_Arrays as MDA
+import FiLogic.Multi_Dimensional_Arrays as MultiDimArray
+import numpy
 import pygame
 import time
 
@@ -16,7 +17,6 @@ class App:
         pygame.init()
         pygame.display.init()
         pygame.mixer.init()
-        pygame.font.init()
         # Predefined Information
         self.title = "Service Learning Project"
         self.screen = pygame.display.set_mode(FiVar.monitor_size, pygame.FULLSCREEN)
@@ -41,28 +41,30 @@ class App:
         pygame.time.set_timer(pygame.USEREVENT + 1, 1)
         pygame.time.set_timer(pygame.USEREVENT + 2, 1000)
         times_clicked = 0
-        # Fonts
-        self.tnr_30 = pygame.font.SysFont("Times New Roman", 30)
-        self.tnr_25 = pygame.font.SysFont("Times New Roman", 20)
         # Background
         background_rect = [True, self.screen.get_rect()]
         # Objects
         screen_objects = {}
         screen_objects.update(self.object_init())
         # 3D Map
-        pv = MDA.ProjectionViewer(self.screen, 1600, 900)
-        cube = MDA.Wireframe()
-        cube.addNodes([(x, y, z) for x in (50, 250) for y in (50, 250) for z in (50, 250)])
-        cube.addEdges(
-            [(n, n + 4) for n in range(0, 4)] + [(n, n + 1) for n in range(0, 8, 2)] + [(n, n + 2) for n in
-                                                                                        (0, 1, 4, 5)])
-        cube2 = MDA.Wireframe()
-        cube2.addNodes([(x, y, z) for x in (500, 2500) for y in (500, 2500) for z in (500, 2500)])
-        cube2.addEdges(
-            [(n, n + 4) for n in range(0, 4)] + [(n, n + 1) for n in range(0, 8, 2)] + [(n, n + 2) for n in
-                                                                                        (0, 1, 4, 5)])
-        pv.addWireframe('cube', cube)
-        pv.addWireframe('cube2', cube2)
+        pv = MultiDimArray.ThreeDimensionalRenderer(self.screen)
+
+        def map_object(name, _x, _y, _z):
+            _object = MultiDimArray.ThreeDimensionalObject()
+            _object.add_nodes(
+                numpy.array([[x, y, z]
+                             for x in range(*_x)
+                             for y in range(*_y)
+                             for z in range(*_z)])
+            )
+            _object.add_edges(
+                [[n, n + 4] for n in range(0, 4)] +
+                [[n, n + 1] for n in range(0, 8, 2)] +
+                [[n, n + 2] for n in (0, 1, 4, 5)]
+            )
+            pv.update(name, _object)
+
+        map_object("cube", [500, 1001, 500], [200, 701, 500], [0, 501, 500])
         # Main Loop
         while not done:
             for event in pygame.event.get():
@@ -164,7 +166,6 @@ class App:
                     elif pressed_key == "2":
                         if background_rect[0]:
                             audio.check_channel(mods, the_fray_x_ddlc___how_to_save_sayoris_life)
-                    pv.run(event)
                     # Input for Text Inputs
                     for object_ in screen_objects:
                         if isinstance(screen_objects[object_][0], TextInput):
@@ -175,60 +176,44 @@ class App:
                     # mods = pygame.key.get_mods()
                     pass
                 elif event.type == pygame.MOUSEBUTTONDOWN:
-                    times_clicked += 1
-                    s_times_clicked = str(times_clicked)
-                    if len(s_times_clicked) > 15:
-                        times_clicked = times_clicked % 1000000000000000
-                        s_times_clicked = str(times_clicked)
-                    while len(s_times_clicked) != 15:
-                        s_times_clicked = "0" + s_times_clicked
-                    screen_objects["clicked_text"][0].update_text = f"Clicks: {s_times_clicked}"
-                    for object_ in screen_objects:
-                        if isinstance(screen_objects[object_][0], TextInput) or \
-                                isinstance(screen_objects[object_][0], Button):
-                            if screen_objects[object_][0].rect.collidepoint(current_position[0], current_position[1]):
-                                background_rect[0] = False
-                                screen_objects[object_][1] = True
-                                if isinstance(screen_objects[object_][0], Button):
-                                    screen_objects[object_][0].pressed_command()
-                                break
-                            elif not screen_objects[object_][0].rect.collidepoint(current_position[0],
-                                                                                  current_position[1]):
-                                screen_objects[object_][1] = False
-                                background_rect[0] = True
+                    pressed_button = event.button
+                    clicked_buttons = pygame.mouse.get_pressed()
+                    if pressed_button not in (4, 5):
+                        if clicked_buttons[0] or clicked_buttons[1] or clicked_buttons[2]:
+                            times_clicked += 1
+                            s_times_clicked = str(times_clicked)
+                            if len(s_times_clicked) > 15:
+                                times_clicked = times_clicked % 1000000000000000
+                                s_times_clicked = str(times_clicked)
+                            while len(s_times_clicked) != 15:
+                                s_times_clicked = "0" + s_times_clicked
+                            screen_objects["clicked_text"][0].update_text = f"Clicks: {s_times_clicked}"
+                            for object_ in screen_objects:
+                                if isinstance(screen_objects[object_][0], TextInput) or \
+                                        isinstance(screen_objects[object_][0], Button):
+                                    if screen_objects[object_][0].rect.collidepoint(current_position[0],
+                                                                                    current_position[1]):
+                                        background_rect[0] = False
+                                        screen_objects[object_][1] = True
+                                        if isinstance(screen_objects[object_][0], Button):
+                                            screen_objects[object_][0].pressed_command()
+                                        break
+                                    elif not screen_objects[object_][0].rect.collidepoint(current_position[0],
+                                                                                          current_position[1]):
+                                        screen_objects[object_][1] = False
+                                        background_rect[0] = True
                 elif event.type == pygame.MOUSEBUTTONUP:
                     for object_ in screen_objects:
                         if isinstance(screen_objects[object_][0], Button):
                             if screen_objects[object_][1]:
                                 screen_objects[object_][1] = False
                                 background_rect[0] = True
-
-            """
-            clicked_text = self.tnr_25.render("Clicks: %s" % s_times_clicked, False, colors["green"])
-            session_time = self.tnr_25.render("Session Time: " + ":".join(reversed(s_time)), False, colors["green"])
-
-            time_rect = pygame.Rect([1450, 800], [140, 90])
-            date_time = self.tnr_30.render(f"{d_time[0]}/{d_time[1]}/{d_time[2]}", False, colors["green"])
-            time_time = self.tnr_30.render(f"{d_time[3]}:{d_time[4]}:{d_time[5]}", False, colors["green"])
-
-            self.screen.fill(colors["black"])
-
-            search_input.rect_(search_input_rect)
-            pygame.draw.rect(self.screen, colors["green"], time_rect, 1)
-
-            blit_objects["clicked_text"] = [clicked_text, [1200, 810]]
-            blit_objects["session_time"] = [session_time, [1150, 850]]
-            blit_objects["date_time"] = [date_time, [1460, 810]]
-            blit_objects["time_time"] = [time_time, [1470, 850]]
-
-            for object_ in blit_objects:
-                self.screen.blit(blit_objects[object_][0], blit_objects[object_][1])
-            """
+                if background_rect[0]:
+                    pv.check(event)
 
             self.screen.fill(FiVar.colors["black"])
 
-            pv.display()
-
+            pv.update()
             for object_ in screen_objects:
                 if isinstance(screen_objects[object_][0], TextBox) or isinstance(screen_objects[object_][0], Button):
                     if isinstance(screen_objects[object_][0], Button) and screen_objects[object_][1]:
@@ -245,28 +230,28 @@ class App:
 
     def object_init(self):
         # Title
-        title_text = TextBox(self.tnr_30, self.screen, [10, 5], text=self.title,
+        title_text = TextBox(FiVar.tnr_30, self.screen, [10, 5], text=self.title,
                              color=FiVar.colors["green"])
         # FPS
-        fps_text = TextBox(self.tnr_30, self.screen, [1545, 5], text=str(round(self.clock.get_fps())),
+        fps_text = TextBox(FiVar.tnr_30, self.screen, [1545, 5], text=str(round(self.clock.get_fps())),
                            color=FiVar.colors["green"])
         # Time
         s_time, d_time = Time().s_time
-        time_text = TextBox(self.tnr_30, self.screen, [1440, 810], ([1430, 800], [160, 90]),
+        time_text = TextBox(FiVar.tnr_30, self.screen, [1440, 810], ([1430, 800], [160, 90]),
                             FiVar.colors["green"],
                             f"  {d_time[3]}:{d_time[4]}:{d_time[5]}\n{d_time[0]}/{d_time[1]}/{d_time[2]}")
-        session_text = TextBox(self.tnr_25, self.screen, [1130, 850], color=FiVar.colors["green"],
+        session_text = TextBox(FiVar.tnr_20, self.screen, [1130, 850], color=FiVar.colors["green"],
                                text=f"Session Time: {':'.join(reversed(s_time))}")
         # Click Counter
-        clicked_text = TextBox(self.tnr_25, self.screen, [1180, 810], color=FiVar.colors["green"],
+        clicked_text = TextBox(FiVar.tnr_20, self.screen, [1180, 810], color=FiVar.colors["green"],
                                text=f"Clicks: 000000000000000")
         # New Game
-        new_game_button = Button(self.tnr_30, self.screen, [20, 55], [[10, 45], [160, 60]],
+        new_game_button = Button(FiVar.tnr_30, self.screen, [20, 55], [[10, 45], [160, 60]],
                                  color=FiVar.colors["green"], text="New Game",
-                                 pressed_command=lambda: print("Hello"),
+                                 pressed_command=lambda: [],
                                  motion_command=lambda event_: new_game_button.highlight(event_))
         # User Input
-        search_input = TextInput(self.tnr_30, self.screen, pos=[80, 840], rect=pygame.Rect([70, 830], [1000, 55]),
+        search_input = TextInput(FiVar.tnr_30, self.screen, pos=[80, 840], rect=pygame.Rect([70, 830], [1000, 55]),
                                  color=FiVar.colors["green"])
         return {
             "title_text": [title_text, False],
@@ -277,6 +262,9 @@ class App:
             "new_game_button": [new_game_button, False],
             "search_input": [search_input, False]
         }
+
+    def save(self):
+        pass
 
 
 class Time:

@@ -20,9 +20,11 @@ class ScreenObject:
         self.x = self.pos[0]
         self.y = self.pos[1]
         if self.given_rect is not None:
+            self.rect = pygame.draw.rect(self.surface, self.color, self.given_rect, 0)
             self.rect = pygame.draw.rect(self.surface, self.color, self.given_rect, self.width)
 
     def update(self):
+        self.rect = pygame.draw.rect(self.surface, FiVar.colors["black"], self.given_rect, 0)
         self.rect = pygame.draw.rect(self.surface, self.orig_color, self.given_rect, self.width)
         if self.width == 0:
             self.rect = pygame.draw.rect(self.surface, self.color, self.given_rect, 2)
@@ -83,6 +85,7 @@ class TextInput(ScreenObject):
 
     def text_box(self, selected):
         # Remaking text input logic; used to lag after a certain amount of inputs.
+        self.rect = pygame.draw.rect(self.surface, FiVar.colors["black"], self.given_rect, 0)
         self.rect = pygame.draw.rect(self.surface, FiVar.colors["green"], self.given_rect, 1)
         old_y = self.y
         try:

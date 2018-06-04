@@ -5,175 +5,176 @@ Array file for [PROJECT NAME].
 """
 import FiLogic.Variables as FiVar
 import pygame
-import math
+import numpy
+import decimal
+
 
 key_to_function = {
-    pygame.K_LEFT: (lambda x: x.translateAll('x', -10)),
-    pygame.K_RIGHT: (lambda x: x.translateAll('x', 10)),
-    pygame.K_DOWN: (lambda x: x.translateAll('y', 10)),
-    pygame.K_UP: (lambda x: x.translateAll('y', -10)),
-    pygame.K_EQUALS: (lambda x: x.scaleAll(1.25)),
-    pygame.K_MINUS: (lambda x: x.scaleAll(0.8)),
-    pygame.K_q: (lambda x: x.rotateAll('X', 0.1)),
-    pygame.K_w: (lambda x: x.rotateAll('X', -0.1)),
-    pygame.K_a: (lambda x: x.rotateAll('Y', 0.1)),
-    pygame.K_s: (lambda x: x.rotateAll('Y', -0.1)),
-    pygame.K_z: (lambda x: x.rotateAll('Z', 0.1)),
-    pygame.K_x: (lambda x: x.rotateAll('Z', -0.1))
+    pygame.K_RIGHT: (lambda x: x.translate([-10, 0, 0])),
+    pygame.K_LEFT: (lambda x: x.translate([10, 0, 0])),
+    pygame.K_UP: (lambda x: x.translate([0, 10, 0])),
+    pygame.K_DOWN: (lambda x: x.translate([0, -10, 0])),
+    4: (lambda x: x.scale(1.25, True)),
+    5: (lambda x: x.scale(0.8, True)),
+    pygame.K_EQUALS: (lambda x: x.scale(1.25)),
+    pygame.K_MINUS: (lambda x: x.scale(0.8)),
+    pygame.K_q: (lambda x: x.rotate_x(0.1)),
+    pygame.K_w: (lambda x: x.rotate_x(-0.1)),
+    pygame.K_a: (lambda x: x.rotate_y(0.1)),
+    pygame.K_s: (lambda x: x.rotate_y(-0.1)),
+    pygame.K_z: (lambda x: x.rotate_z(0.1)),
+    pygame.K_x: (lambda x: x.rotate_z(-0.1))
 }
 
 
-class ProjectionViewer:
-    """ Displays 3D objects on a Pygame screen """
-
-    def __init__(self, screen, width, height):
-        self.width = width
-        self.height = height
+class ThreeDimensionalRenderer:
+    def __init__(self, screen):
         self.screen = screen
+        self.objects = {}
+        self.mouse_pos = pygame.mouse.get_pos()
+        self.active_text = False
 
-        self.wireframes = {}
-        self.displayNodes = True
-        self.displayEdges = True
-        self.nodeColour = (255, 255, 255)
-        self.edgeColour = (200, 200, 200)
-        self.nodeRadius = 4
+    def update(self, name=None, given_object=None):
+        if name is not None and given_object is not None:
+            self.objects[name] = given_object
+        else:
+            for object_ in self.objects.values():
+                for n1, n2 in object_.edges:
+                    pygame.draw.aaline(self.screen, FiVar.colors["white"], object_.nodes[n1][:2], object_.nodes[n2][:2],
+                                       1)
+                for node in object_.nodes:
+                    pygame.draw.circle(self.screen, FiVar.colors["white"], (numpy.int_(node[0]),
+                                                                            numpy.int_(node[1])), 4, 0)
+                    if self.active_text:
+                        self.screen.blit(FiVar.tnr_20.render(f"{round(node[0]), round(node[1])}", True,
+                                                             FiVar.colors["green"]),
+                                         (numpy.int_(node[0]), numpy.int_(node[1])))
 
-    def addWireframe(self, name, wireframe):
-        """ Add a named wireframe object. """
+    def check(self, event):
+        if event.type == pygame.KEYDOWN:
+            if event.key in key_to_function:
+                key_to_function[event.key](self)
+            if event.key == pygame.K_t:
+                if not self.active_text:
+                    self.active_text = True
+                elif self.active_text:
+                    self.active_text = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self.mouse_pos = pygame.mouse.get_pos()
+            pygame.draw.circle(self.screen, FiVar.colors["white"], self.mouse_pos, 4)
+            if event.button in key_to_function:
+                key_to_function[event.button](self)
+        elif event.type == pygame.MOUSEMOTION:
+            if pygame.mouse.get_pressed()[0]:
+                self.translate([(pygame.mouse.get_pos()[0] - self.mouse_pos[0]), 0, 0])
+                self.translate([0, (pygame.mouse.get_pos()[1] - self.mouse_pos[1]), 0])
+            if pygame.mouse.get_pressed()[1]:
+                self.rotate_y((pygame.mouse.get_pos()[0] - self.mouse_pos[0]) / 100)
+                self.rotate_x((pygame.mouse.get_pos()[1] - self.mouse_pos[1]) / 100)
+            self.mouse_pos = pygame.mouse.get_pos()
 
-        self.wireframes[name] = wireframe
+    def translate(self, vector):
+        matrix = ThreeDimensionalObject.translation_matrix(*vector)
+        for object_ in self.objects.values():
+            object_.transform(matrix)
 
-    def run(self, event):
-        if event.key in key_to_function:
-            key_to_function[event.key](self)
+    def scale(self, scale, mouse=False):
+        if mouse:
+            centre = [int(axis) for axis in pygame.mouse.get_pos()]
+        else:
+            centre = [int(axis/2) for axis in self.screen.get_size()]
+        matrix = ThreeDimensionalObject.scale_matrix(scale, scale, scale)
+        for object_ in self.objects.values():
+            object_.transform(ThreeDimensionalObject.translation_matrix(-centre[0], -centre[1], 0))
+            object_.transform(matrix)
+            object_.transform(ThreeDimensionalObject.translation_matrix(*centre, 0))
 
-    def display(self):
-        """ Draw the wireframes on the screen. """
+    def rotate_x(self, radians):
+        matrix = ThreeDimensionalObject.rotate_x_matrix(radians)
+        for object_ in self.objects.values():
+            centre = object_.find_centre()
+            object_.transform(ThreeDimensionalObject.translation_matrix(-centre[0], -centre[1], -centre[2]))
+            object_.transform(matrix)
+            object_.transform(ThreeDimensionalObject.translation_matrix(*centre))
 
-        for wireframe in self.wireframes.values():
-            if self.displayEdges:
-                for edge in wireframe.edges:
-                    pygame.draw.aaline(self.screen, self.edgeColour, (edge.start.x, edge.start.y),
-                                       (edge.stop.x, edge.stop.y), 1)
+    def rotate_y(self, radians):
+        matrix = ThreeDimensionalObject.rotate_y_matrix(radians)
+        for object_ in self.objects.values():
+            centre = object_.find_centre()
+            object_.transform(ThreeDimensionalObject.translation_matrix(-centre[0], -centre[1], -centre[2]))
+            object_.transform(matrix)
+            object_.transform(ThreeDimensionalObject.translation_matrix(*centre))
 
-            if self.displayNodes:
-                for node in wireframe.nodes:
-                    pygame.draw.circle(self.screen, self.nodeColour, (int(node.x), int(node.y)), self.nodeRadius, 0)
-
-    def translateAll(self, axis, d):
-        """ Translate all wireframes along a given axis by d units. """
-
-        for wireframe in self.wireframes.values():
-            wireframe.translate(axis, d)
-
-    def scaleAll(self, scale):
-        """ Scale all wireframes by a given scale, centred on the centre of the screen. """
-
-        centre_x = self.width / 2
-        centre_y = self.height / 2
-
-        for wireframe in self.wireframes.values():
-            wireframe.scale(centre_x, centre_y, scale)
-
-    def rotateAll(self, axis, theta):
-        """ Rotate all wireframe about their centre, along a given axis by a given angle. """
-
-        rotateFunction = 'rotate' + axis
-
-        for wireframe in self.wireframes.values():
-            centre = wireframe.findCentre()
-            getattr(wireframe, rotateFunction)(centre[0], centre[1], centre[2], theta)
+    def rotate_z(self, radians):
+        matrix = ThreeDimensionalObject.rotate_z_matrix(radians)
+        for object_ in self.objects.values():
+            centre = object_.find_centre()
+            object_.transform(ThreeDimensionalObject.translation_matrix(-centre[0], -centre[1], -centre[2]))
+            object_.transform(matrix)
+            object_.transform(ThreeDimensionalObject.translation_matrix(*centre))
 
 
-class Node:
-    def __init__(self, coordinates):
-        self.x = coordinates[0]
-        self.y = coordinates[1]
-        self.z = coordinates[2]
-
-
-class Edge:
-    def __init__(self, start, stop):
-        self.start = start
-        self.stop = stop
-
-
-class Wireframe:
+class ThreeDimensionalObject:
     def __init__(self):
-        self.nodes = []
+        self.nodes = numpy.zeros((0, 4))
         self.edges = []
 
-    def addNodes(self, nodeList):
-        for node in nodeList:
-            self.nodes.append(Node(node))
+    def add_nodes(self, node_array):
+        ones_column = numpy.ones((len(node_array), 1))
+        ones_added = numpy.hstack((node_array, ones_column))
+        self.nodes = numpy.vstack((self.nodes, ones_added))
 
-    def addEdges(self, edgeList):
-        for (start, stop) in edgeList:
-            self.edges.append(Edge(self.nodes[start], self.nodes[stop]))
+    def add_edges(self, edgelist):
+        self.edges += edgelist
 
-    def outputNodes(self):
-        print(
-        "\n --- Nodes --- ")
-        for i, node in enumerate(self.nodes):
-            print(
-            " %d: (%.2f, %.2f, %.2f)" % (i, node.x, node.y, node.z))
-
-    def outputEdges(self):
-        print(
-        "\n --- Edges --- ")
-        for i, edge in enumerate(self.edges):
-            print(
-            " %d: (%.2f, %.2f, %.2f)" % (i, edge.start.x, edge.start.y, edge.start.z),
-            "to (%.2f, %.2f, %.2f)" % (edge.stop.x, edge.stop.y, edge.stop.z))
-
-    def translate(self, axis, d):
-        """ Add constant 'd' to the coordinate 'axis' of each node of a wireframe """
-
-        if axis in ['x', 'y', 'z']:
-            for node in self.nodes:
-                setattr(node, axis, getattr(node, axis) + d)
-
-    def scale(self, centre_x, centre_y, scale):
-        """ Scale the wireframe from the centre of the screen """
-
-        for node in self.nodes:
-            node.x = centre_x + scale * (node.x - centre_x)
-            node.y = centre_y + scale * (node.y - centre_y)
-            node.z *= scale
-
-    def findCentre(self):
-        """ Find the centre of the wireframe. """
-
+    def find_centre(self):
         num_nodes = len(self.nodes)
-        meanX = sum([node.x for node in self.nodes]) / num_nodes
-        meanY = sum([node.y for node in self.nodes]) / num_nodes
-        meanZ = sum([node.z for node in self.nodes]) / num_nodes
+        mean_x = sum([node[0] for node in self.nodes]) / num_nodes
+        mean_y = sum([node[1] for node in self.nodes]) / num_nodes
+        mean_z = sum([node[2] for node in self.nodes]) / num_nodes
 
-        return [meanX, meanY, meanZ]
+        return [mean_x, mean_y, mean_z]
 
-    def rotateX(self, cx, cy, cz, radians):
-        for node in self.nodes:
-            y = node.y - cy
-            z = node.z - cz
-            d = math.hypot(y, z)
-            theta = math.atan2(y, z) + radians
-            node.z = cz + d * math.cos(theta)
-            node.y = cy + d * math.sin(theta)
+    def transform(self, matrix):
+        self.nodes = numpy.dot(self.nodes, matrix)
 
-    def rotateY(self, cx, cy, cz, radians):
-        for node in self.nodes:
-            x = node.x - cx
-            z = node.z - cz
-            d = math.hypot(x, z)
-            theta = math.atan2(x, z) + radians
-            node.z = cz + d * math.cos(theta)
-            node.x = cx + d * math.sin(theta)
+    @staticmethod
+    def translation_matrix(dx=0, dy=0, dz=0):
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 0, 1, 0],
+                            [dx, dy, dz, 1]])
 
-    def rotateZ(self, cx, cy, cz, radians):
-        for node in self.nodes:
-            x = node.x - cx
-            y = node.y - cy
-            d = math.hypot(y, x)
-            theta = math.atan2(y, x) + radians
-            node.x = cx + d * math.cos(theta)
-            node.y = cy + d * math.sin(theta)
+    @staticmethod
+    def scale_matrix(sx=0, sy=0, sz=0):
+        return numpy.array([[sx, 0, 0, 0],
+                            [0, sy, 0, 0],
+                            [0, 0, sz, 0],
+                            [0, 0, 0, 1]])
+
+    @staticmethod
+    def rotate_x_matrix(radians):
+        c = numpy.cos(radians)
+        s = numpy.sin(radians)
+        return numpy.array([[1, 0, 0, 0],
+                            [0, c, -s, 0],
+                            [0, s, c, 0],
+                            [0, 0, 0, 1]])
+
+    @staticmethod
+    def rotate_y_matrix(radians):
+        c = numpy.cos(radians)
+        s = numpy.sin(radians)
+        return numpy.array([[c, 0, s, 0],
+                            [0, 1, 0, 0],
+                            [-s, 0, c, 0],
+                            [0, 0, 0, 1]])
+
+    @staticmethod
+    def rotate_z_matrix(radians):
+        c = numpy.cos(radians)
+        s = numpy.sin(radians)
+        return numpy.array([[c, -s, 0, 0],
+                            [s, c, 0, 0],
+                            [0, 0, 1, 0],
+                            [0, 0, 0, 1]])
